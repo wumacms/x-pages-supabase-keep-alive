@@ -17,13 +17,36 @@ Supabase 官方政策规定，免费版项目如果连续 **7 天**没有任何 
 登录 Supabase 后台，打开 **SQL Editor**，运行以下 SQL 语句来初始化心跳表：
 
 ```sql
+-- ========================================================
+-- 1. 创建心跳数据表
+-- ========================================================
+-- 如果表不存在则创建。使用 id 作为自增主键，last_ping 记录最新的心跳时间
 create table if not exists public.keep_alive (
     id bigint primary key generated always as identity,
     last_ping timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- 插入一条默认值数据（不显式指定 id）
+-- ========================================================
+-- 2. 初始化第一条基础数据
+-- ========================================================
+-- 使用 default values 绕过 PostgreSQL 的 'GENERATED ALWAYS' 身份列限制
+-- 数据库会自动为这行数据生成 id = 1。后续 GitHub Actions 将永久更新这行数据
 insert into public.keep_alive default values;
+
+-- ========================================================
+-- 3. 数据库时区本地化（优化外观）
+-- ========================================================
+-- 将数据库默认时区更改为北京时间（中国标准时间 UTC+8）
+-- 这样在 Supabase Table Editor 中查看 last_ping 时，显示的将是直观的北京时间
+ALTER DATABASE postgres SET timezone TO 'Asia/Shanghai';
+
+-- ========================================================
+-- 4. 权限解锁（核心关键）
+-- ========================================================
+-- 彻底关闭该表的行级安全策略（RLS）。
+-- 确保 GitHub Actions 使用 anon (Publishable) key 发送 PATCH 请求时，
+-- 能够拥有合法的写入权限，避免请求被静默拒绝。
+alter table public.keep_alive disable row level security;
 ```
 
 ---
