@@ -11,10 +11,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    # 1. 临时生成当前标准 ISO 8601 时间戳，并存入 GitHub 环境变量
+    - name: Get current time
+      id: current-time
+      run: echo "NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> $GITHUB_ENV
+
+    # 2. 将生成好的具体时间发送给 Supabase
     - name: Send Heartbeat to Supabase via REST API
       run: |
         curl -X PATCH "${{ secrets.SUPABASE_URL }}/rest/v1/keep_alive?id=eq.1" \
         -H "apikey: ${{ secrets.SUPABASE_KEY }}" \
         -H "Authorization: Bearer ${{ secrets.SUPABASE_KEY }}" \
         -H "Content-Type: application/json" \
-        -d '{"last_ping": "now()"}'
+        -d "{\"last_ping\": \"${{ env.NOW }}\"}"
