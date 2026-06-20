@@ -1,0 +1,20 @@
+name: Supabase Keep Alive
+
+on:
+  schedule:
+    # 每天 UTC 时间 0:00 和 12:00 各触发一次（即每 12 小时一次，北京时间为 08:00 和 20:00）
+    - cron: "0 */12 * * *"
+  workflow_dispatch: # 允许你在 GitHub 页面上手动点击按钮触发测试
+
+jobs:
+  ping-supabase:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Send Heartbeat to Supabase via REST API
+        run: |
+          curl -X PATCH "${{ secrets.SUPABASE_URL }}/rest/v1/keep_alive?id=eq.1" \
+          -H "apikey: ${{ secrets.SUPABASE_KEY }}" \
+          -H "Authorization: Bearer ${{ secrets.SUPABASE_KEY }}" \
+          -H "Content-Type: application/json" \
+          -d '{"last_ping": "now()"}'
